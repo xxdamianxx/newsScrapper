@@ -3,6 +3,8 @@ var express = require("express");
 const cheerio = require("cheerio");
 // Makes HTTP request for HTML page
 const axios = require("axios");
+// const database = require("./../db/database_connect.js");
+let News = require('./../db/news.js');
 
 var router = express.Router();
 
@@ -14,6 +16,11 @@ router.get("/", function(req, res) {
       message: "Success"
     };
     // console.log(hbsObject);
+
+
+    
+
+
 
     res.render("index", hbsObject);
 //   });
@@ -59,17 +66,28 @@ router.get("/api/news", function(req, res) {
       // // console.log("synopsis: " + synopsis);
       // console.log(" ");
       if(title != undefined && link != undefined && synopsis != undefined && synopsis != ""){
-        results.push({title: title, link:link, synopsis: synopsis});
+        let newNews = News({headline: title, url:link, summary: synopsis});
+        newNews.save(function(err, news_item) {
+          if (err) {
+            console.log("Error saving news article")
+            throw err;
+          }
+          // console.log(" ");
+          // console.log(" ");
+          // console.log('News added successfully.' + news_item._id);
+        });
       }
-      
     });
-
-    console.log("Sending back results...");
-    console.log(" ");
-    console.log(results);
-    console.log(" ");
-    console.log(" ");
-    res.send(results);
+    News.find({}, function(err, all_news) {
+      console.log("Sending back results...");
+      console.log(" ");
+      // console.log(all_news);
+      // console.log(results);
+      // console.log(" ");
+      // console.log(" ");
+      res.send(all_news);
+    });
+    
 
   });      
     
