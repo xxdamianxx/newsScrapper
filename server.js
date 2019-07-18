@@ -9,13 +9,15 @@ const express = require("express");
 // =============================== MONGOOSE ================================================
 // If deployed, use the deployed database. Otherwise use the local mongoHeadlines database
 var MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost/mongoHeadlines";
+console.log("Connected to : " + MONGODB_URI);
 mongoose.connect(MONGODB_URI);
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function callback () {
   console.log("Connected to mongoose database: " + MONGODB_URI);
 });
-var News = require('./db/news');
+// Mongoose Schema
+var News = require('./db/news.js');
 // =============================== END MONGOOSE ================================================
 
 

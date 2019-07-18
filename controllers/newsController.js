@@ -1,21 +1,15 @@
 var express = require("express");
+// Parses our HTML and helps us find elements
+const cheerio = require("cheerio");
+// Makes HTTP request for HTML page
+const axios = require("axios");
+
 var router = express.Router();
-
-// Import the model (cat.js) to use its database functions.
-var news = require("../models/news.js");
-
-
-
-//  * Headline - the title of the article
-//  * Summary - a short summary of the article
-//  * URL - the url to the original article
-//  * [OPTIONAL] Feel free to add more content to your database (photos, bylines, and so on).
-
 
 // Create all our routes and set up logic within those routes where required.
 router.get("/", function(req, res) {
 //   cat.all(function(data) {
-
+    
     var hbsObject = {
       message: "Success"
     };
@@ -24,6 +18,62 @@ router.get("/", function(req, res) {
     res.render("index", hbsObject);
 //   });
 });
+
+
+router.get("/api/news", function(req, res) {
+  // First, tell the console what server.js is doing
+  console.log("\n***********************************\n" +
+              "Grabbing every thread name and link\n" +
+              "from NPR:" +
+              "\n***********************************\n");
+  axios.get("https://www.npr.org/").then((response) => {
+
+    // Load the HTML into cheerio and save it to a variable
+    // '$' becomes a shorthand for cheerio's selector commands, much like jQuery's '$'
+    const $ = cheerio.load(response.data);
+  
+    // An empty array to save the data that we'll scrape
+    const results = [];
+
+    $(".story-text").each(function(i, element) {
+      let title = $(element).find("h3.title").text();
+      // let link = $(element).find("a").attr("href");
+      let link = $(element).children("a").attr("href");
+      let synopsis = $(element).find("a").find("p.teaser").text();
+
+      // Save the text of the element in a "title" variable
+      // const title = $(element).text();
+      // console.log(" =============================== News Element Start ===================");
+      // console.log(" ");
+      // console.log(" ");
+      // // console.log("title: " + title);
+      // console.log(" ");
+
+      // console.log(" ");
+      // console.log(" ");
+      // // console.log("link: " + link);
+      // console.log(" ");
+
+      // console.log(" ");
+      // console.log(" ");
+      // // console.log("synopsis: " + synopsis);
+      // console.log(" ");
+      if(title != undefined && link != undefined && synopsis != undefined && synopsis != ""){
+        results.push({title: title, link:link, synopsis: synopsis});
+      }
+      
+    });
+
+    console.log("Sending back results...");
+    console.log(" ");
+    console.log(results);
+    console.log(" ");
+    console.log(" ");
+    res.send(results);
+
+  });      
+    
+  });
 
 router.post("/api/news", function(req, res) {
 //   cat.create([

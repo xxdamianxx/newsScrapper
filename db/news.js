@@ -8,4 +8,4 @@ var newsSchema = mongoose.Schema({
 
 var News = mongoose.model('News', newsSchema);
 
-module.exports = News;
+module.exports = News; 
