@@ -18,21 +18,12 @@ router.get("/", function(req, res) {
     // console.log(hbsObject);
 
 
-    
-
-
-
-    res.render("index", hbsObject);
-//   });
-});
-
-
-router.get("/api/news", function(req, res) {
   // First, tell the console what server.js is doing
   console.log("\n***********************************\n" +
               "Grabbing every thread name and link\n" +
               "from NPR:" +
               "\n***********************************\n");
+  
   axios.get("https://www.npr.org/").then((response) => {
 
     // Load the HTML into cheerio and save it to a variable
@@ -40,7 +31,7 @@ router.get("/api/news", function(req, res) {
     const $ = cheerio.load(response.data);
   
     // An empty array to save the data that we'll scrape
-    const results = [];
+    // const results = [];
 
     $(".story-text").each(function(i, element) {
       let title = $(element).find("h3.title").text();
@@ -48,49 +39,37 @@ router.get("/api/news", function(req, res) {
       let link = $(element).children("a").attr("href");
       let synopsis = $(element).find("a").find("p.teaser").text();
 
-      // Save the text of the element in a "title" variable
-      // const title = $(element).text();
-      // console.log(" =============================== News Element Start ===================");
-      // console.log(" ");
-      // console.log(" ");
-      // // console.log("title: " + title);
-      // console.log(" ");
-
-      // console.log(" ");
-      // console.log(" ");
-      // // console.log("link: " + link);
-      // console.log(" ");
-
-      // console.log(" ");
-      // console.log(" ");
-      // // console.log("synopsis: " + synopsis);
-      // console.log(" ");
       if(title != undefined && link != undefined && synopsis != undefined && synopsis != ""){
-        let newNews = News({headline: title, url:link, summary: synopsis});
-        newNews.save(function(err, news_item) {
+
+        News.findOne({headline: title}, function(err, newsArticle) {
+          if (err) {
+              console.log("MongoDB Error: " + err);
+              return false; 
+          }else if (!newsArticle || newsArticle == undefined){
+            let newNews = News({headline: title, url:link, summary: synopsis});
+            newNews.save(function(err, news_item) {
           if (err) {
             console.log("Error saving news article")
             throw err;
           }
-          // console.log(" ");
-          // console.log(" ");
-          // console.log('News added successfully.' + news_item._id);
+        });
+          }
         });
       }
     });
-    News.find({}, function(err, all_news) {
-      console.log("Sending back results...");
-      console.log(" ");
-      // console.log(all_news);
-      // console.log(results);
-      // console.log(" ");
-      // console.log(" ");
-      res.send(all_news);
-    });
-    
+    console.log("Done crawling the news");
+  });  
+    // Load index page now...
+    res.render("index", hbsObject);
+});
 
-  });      
-    
+
+router.get("/api/news", function(req, res) {
+  News.find({}, function(err, all_news) {
+    console.log("Sending back results...");
+    console.log(" ");
+    res.send(all_news);
+  });
   });
 
 router.post("/api/news", function(req, res) {
@@ -105,32 +84,71 @@ router.post("/api/news", function(req, res) {
 });
 
 router.put("/api/news/:id", function(req, res) {
-  var condition = "id = " + req.params.id;
-  console.log("condition", condition);
+  var news_id = req.params.id;
+  console.log("id: " + news_id);
+  // console.log("type of: " + typeof req);
+  console.log("req.body.comment: " + req.body.comment); 
+  // console.log("req.data stringify: " + JSON.stringify(req.data)); 
+  // console.log("req parse: " + JSON.parse(req));
+  // console.log("req stringify: " + JSON.stringify(req));
+  
+  var news_comment = req.body.comment;
+  console.log("Adding Comment to ", news_id);
+  console.log("news_comment: ", news_comment);
 
-//   cat.update({
-//     sleepy: req.body.sleepy
-//   }, condition, function(result) {
-//     if (result.changedRows == 0) {
-//       // If no rows were changed, then the ID must not exist, so 404
-//       return res.status(404).end();
-//     } else {
-//       res.status(200).end();
-//     }
-//   });
+  News.findById(news_id, function(err, news) {
+    if (err)
+      throw(err)
+    else {
+      
+      comments = news.comments;
+      comments.push(news_comment);
+      news.comments = comments;
+  
+      news.save(function(err) {
+        if (err)
+          console.log('Comment added unsuccessfully')
+        else
+          console.log('Comment added successfully')
+        res.send({message: "Done with comment"})
+      });
+    }
+  });
 });
 
 router.delete("/api/news/:id", function(req, res) {
-  var condition = "id = " + req.params.id;
+  var news_id = req.params.id;
+  var news_comment_req = req.body.comment;
+  console.log("id: " + news_id);
 
-//   cat.delete(condition, function(result) {
-//     if (result.affectedRows == 0) {
-//       // If no rows were changed, then the ID must not exist, so 404
-//       return res.status(404).end();
-//     } else {
-//       res.status(200).end();
-//     }
-//   });
+  News.findById(news_id, function(err, news) {
+    if (err)
+      throw(err)
+    else {
+      
+      comments = news.comments;
+      for(var i = 0; i < comments.length; i++){
+        if(comments[i] == news_comment_req){
+          // remove comment here
+          // update comments
+          console.log("Found a comment to remove at " + i);
+          comments.splice(i,1);
+        }
+        news.comments = comments;
+      }
+        
+  
+      news.save(function(err) {
+        if (err)
+          console.log('Comment removed unsuccessfully')
+        else
+          console.log('Comment removed successfully')
+        res.send({message: "Done with comment"})
+      });
+    }
+  });
+
+
 });
 
 // Export routes for server.js to use.
